@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+
+# build
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# dev tools
+.devpilot/
+
+# DB dumps (do not commit)
+*.sql
+*.sql.gz
+*.dump
+*.bak

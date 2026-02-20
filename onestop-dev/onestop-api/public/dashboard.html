@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Onestop Analytics Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #111827;
+      --bg-soft: #020617;
+      --border-soft: #1f2937;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.1);
+      --accent-soft2: rgba(56, 189, 248, 0.15);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --danger-soft: rgba(248, 113, 113, 0.1);
+      --success: #4ade80;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.65);
+      --shadow-subtle: 0 10px 30px rgba(15, 23, 42, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, "맑은 고딕", sans-serif;
+      background: radial-gradient(circle at top left, #1e293b 0, #020617 45%, #000 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    .dashboard-root {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+    }
+
+    /* 헤더 */
+    .dash-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .dash-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .dash-logo-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 18px;
+      background: radial-gradient(circle at 30% 0%, #38bdf8 0, #2563eb 40%, #4b21ff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3), var(--shadow-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+    .dash-logo-dot::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), transparent 40%);
+      mix-blend-mode: screen;
+    }
+    .dash-logo-dot span {
+      font-size: 18px;
+      font-weight: 800;
+      color: #e5f2ff;
+      letter-spacing: 0.03em;
+    }
+
+    .dash-title-main {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dash-title-main span.brand {
+      background: linear-gradient(120deg, #38bdf8, #a855f7, #f97316);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .dash-title-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .dash-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .filter-chip-group {
+      display: inline-flex;
+      gap: 6px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+    }
+    .filter-chip {
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 11px;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.18s ease-out;
+      white-space: nowrap;
+    }
+    .filter-chip.active {
+      background: var(--accent-soft);
+      border-color: rgba(37, 99, 235, 0.6);
+      color: #e5f2ff;
+      font-weight: 600;
+    }
+    .filter-chip:hover {
+      border-color: rgba(148, 163, 184, 0.7);
+    }
+
+    .filter-input {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .filter-input label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .filter-input input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text-main);
+      font-size: 11px;
+      min-width: 120px;
+    }
+    .filter-input input[type="date"] {
+      cursor: pointer;
+    }
+
+    .filter-refresh-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(37, 99, 235, 0.3));
+      color: #e5f2ff;
+      font-size: 11px;
+      padding: 5px 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.8), var(--shadow-subtle);
+    }
+    .filter-refresh-btn span.icon {
+      font-size: 12px;
+    }
+    .filter-refresh-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.5);
+    }
+
+    /* 상단 카드 */
+    .card-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1024px) {
+      .card-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .card-grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-card {
+      background: radial-gradient(circle at top, rgba(37, 99, 235, 0.24), var(--bg-card) 55%);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 12px 14px 14px;
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background-image: radial-gradient(circle at 10% 0%, rgba(56, 189, 248, 0.08) 0, transparent 38%),
+        radial-gradient(circle at 70% 130%, rgba(129, 140, 248, 0.14) 0, transparent 50%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .stat-inner {
+      position: relative;
+      z-index: 1;
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(148, 163, 184, 0.95);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.35);
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .stat-value span.unit {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stat-badge {
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      border: 1px solid rgba(52, 211, 153, 0.5);
+      color: #a7f3d0;
+      background: radial-gradient(circle at 10% 0, rgba(52, 211, 153, 0.24), transparent 70%);
+    }
+    .stat-badge.danger {
+      border-color: rgba(248, 113, 113, 0.7);
+      color: #fecaca;
+      background: radial-gradient(circle at 10% 0, rgba(248, 113, 113, 0.18), transparent 70%);
+    }
+
+    /* 메인 2단 레이아웃 */
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.2fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.94));
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 14px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -20%;
+      background-image:
+        radial-gradient(circle at 0 0, rgba(37, 99, 235, 0.18) 0, transparent 55%),
+        radial-gradient(circle at 100% 0, rgba(45, 212, 191, 0.14) 0, transparent 60%),
+        radial-gradient(circle at 50% 140%, rgba(56, 189, 248, 0.09) 0, transparent 50%);
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .card-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title-pill {
+      width: 6px;
+      height: 18px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #38bdf8, #a855f7);
+      box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.4);
+    }
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .mini-tag {
+      font-size: 10px;
+      padding: 3px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-muted);
+    }
+
+    /* 테이블 */
+    .table-wrap {
+      margin-top: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.96));
+      overflow: hidden;
+      max-height: 310px;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-scroll {
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      min-width: 100%;
+    }
+    thead {
+      background: rgba(15, 23, 42, 0.97);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    th, td {
+      padding: 7px 8px;
+      text-align: left;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.85);
+      white-space: nowrap;
+    }
+    th {
+      font-weight: 600;
+      color: rgba(148, 163, 184, 0.9);
+      font-size: 11px;
+    }
+    tbody tr:hover {
+      background: rgba(15, 23, 42, 0.9);
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.92);
+    }
+    tbody tr:nth-child(odd) {
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    .pill-badge {
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text-muted);
+    }
+    .pill-badge.emph {
+      border-color: rgba(56, 189, 248, 0.7);
+      color: #e0f2fe;
+      background: rgba(8, 47, 73, 0.9);
+    }
+    .pill-badge.danger {
+      border-color: rgba(248, 113, 113, 0.8);
+      color: #fecaca;
+      background: rgba(127, 29, 29, 0.9);
+    }
+
+    /* 하단 2열 */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.4fr);
+      gap: 16px;
+    }
+    @media (max-width: 1024px) {
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .muted-text {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .empty-state {
+      padding: 18px;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* 마진 계산기 */
+    .margin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .form-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .form-row label {
+      flex: 0 0 80px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .form-row input {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 9px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      font-size: 11px;
+      outline: none;
+    }
+    .form-row input:focus {
+      border-color: rgba(37, 99, 235, 0.9);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.6);
+    }
+    .btn-primary {
+      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(56, 189, 248, 0.7);
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(37, 99, 235, 0.85));
+      color: #e0f2fe;
+      font-size: 11px;
+      cursor: pointer;
+      box-shadow: var(--shadow-subtle);
+    }
+    .btn-primary:active {
+      transform: translateY(1px);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.7);
+    }
+
+    .margin-result {
+      margin-top: 8px;
+      padding: 10px 11px;
+      border-radius: 12px;
+      background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.36), rgba(15, 23, 42, 0.96));
+      border: 1px solid rgba(129, 140, 248, 0.7);
+      font-size: 11px;
+    }
+    .margin-result-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    /* 로딩 / 에러 */
+    .loading-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 100%;
+      background: linear-gradient(90deg, #38bdf8, #a855f7, #f97316);
+      background-size: 200% 100%;
+      animation: dash-loading 1.2s linear infinite;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-bar.active {
+      opacity: 1;
+    }
+    @keyframes dash-loading {
+      0% { background-position: 0 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .error-banner {
+      margin-bottom: 10px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      background: var(--danger-soft);
+      border: 1px solid rgba(248, 113, 113, 0.8);
+      color: #fecaca;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="loading-bar" :class="{ active: globalLoading }"></div>
+
+  <div class="dashboard-root">
+    <!-- 헤더 -->
+    <header class="dash-header">
+      <div>
+        <div class="dash-title-wrap">
+          <div class="dash-logo-dot">
+            <span>OS</span>
+          </div>
+          <div>
+            <div class="dash-title-main">
+              <span class="brand">Onestop Dome</span>
+              <span>/ Seller Insight</span>
+            </div>
+            <div class="dash-title-sub">
+              입점사 / 상품 / 재고를 한 번에 보는 B2B 통합 대시보드
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dash-filter-bar">
+        <div class="filter-chip-group">
+          <button
+            class="filter-chip"
+            :class="{ active: quickRange === '7d' }"
+            @click="setQuickRange('7d')"
+          >
+            최근 7일
+          </button>
+          <button
+            class="filter-chip"
+            :class="{ active: quickRange === '30d' }"
+            @click="setQuickRange('30d')"
+          >
+            최근 30일
+          </button>
+          <button
+            class="filter-chip"
+            :class="{ active: quickRange === 'ytd' }"
+            @click="setQuickRange('ytd')"
+          >
+            올해 누적
+          </button>
+        </div>
+
+        <div class="filter-input">
+          <label>기간</label>
+          <input type="date" v-model="filters.startDate" />
+          <span style="font-size:10px;color:var(--text-muted)">~</span>
+          <input type="date" v-model="filters.endDate" />
+        </div>
+
+        <div class="filter-input">
+          <label>입점사</label>
+          <input
+            type="number"
+            min="0"
+            placeholder="전체"
+            v-model="filters.providerSeq"
+          />
+        </div>
+
+        <button class="filter-refresh-btn" @click="reloadAll">
+          <span class="icon">⟳</span>
+          새로고침
+        </button>
+      </div>
+    </header>
+
+    <!-- 에러 표시 -->
+    <div v-if="errorMessage" class="error-banner">
+      ⚠️ <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- 상단 요약 카드 -->
+    <section class="card-grid-4">
+      <div class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-label">
+            <span class="stat-dot"></span>
+            매출 합계
+          </div>
+          <div class="stat-value">
+            <span>{{ formatCurrency(summary.totalSales) }}</span>
+            <span class="unit">원</span>
+          </div>
+          <div class="stat-sub">
+            <span>기간 내 총 매출</span>
+            <span class="stat-badge">
+              {{ formatNumber(summary.totalOrders) }} 건
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-label">
+            <span class="stat-dot" style="background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.3)"></span>
+            일 평균 매출
+          </div>
+          <div class="stat-value">
+            <span>{{ formatCurrency(summary.avgDailySales) }}</span>
+            <span class="unit">원 / 일</span>
+          </div>
+          <div class="stat-sub">
+            <span>{{ summary.days }}일 기준</span>
+            <span class="stat-badge">
+              {{ formatNumber(summary.avgOrderPerDay) }} 건 / 일
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-label">
+            <span class="stat-dot" style="background:#eab308; box-shadow:0 0 0 4px rgba(234,179,8,.35)"></span>
+            저재고 상품
+          </div>
+          <div class="stat-value">
+            <span>{{ lowStockCount }}</span>
+            <span class="unit">개</span>
+          </div>
+          <div class="stat-sub">
+            <span>안전재고 이하 상품</span>
+            <span
+              class="stat-badge danger"
+              v-if="lowStockCount > 0"
+            >
+              발주 검토 필요
+            </span>
+            <span
+              class="stat-badge"
+              v-else
+            >
+              양호
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-label">
+            <span class="stat-dot" style="background:#f97316; box-shadow:0 0 0 4px rgba(248, 171, 85,.3)"></span>
+            재고 알림
+          </div>
+          <div class="stat-value">
+            <span>{{ stockAlertCount }}</span>
+            <span class="unit">건</span>
+          </div>
+          <div class="stat-sub">
+            <span>옵션 기준 실시간 경고</span>
+            <span
+              class="stat-badge danger"
+              v-if="stockAlertCount > 0"
+            >
+              즉시 체크
+            </span>
+            <span
+              class="stat-badge"
+              v-else
+            >
+              정상
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 메인 2단: 매출 그래프 + 입점사 TOP -->
+    <section class="main-grid">
+      <div class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="card-title-pill"></span>
+                <span>매출 추이 (일자별)</span>
+              </div>
+              <div class="card-subtitle">
+                선택한 기간의 일별 매출 / 주문 건수 변화를 한눈에 확인합니다.
+              </div>
+            </div>
+            <span class="mini-tag">
+              Gross Sales / Orders
+            </span>
+          </div>
+          <canvas id="salesChart" height="140"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="card-title-pill"></span>
+                <span>입점사별 매출 TOP</span>
+              </div>
+              <div class="card-subtitle">
+                Gross Sales 기준 상위 입점사 순위입니다.
+              </div>
+            </div>
+            <span class="mini-tag">
+              Top Vendors
+            </span>
+          </div>
+
+          <div class="table-wrap">
+            <div v-if="topVendors.length === 0" class="empty-state">
+              데이터가 없습니다. 기간 또는 필터를 변경해 보세요.
+            </div>
+            <div class="table-scroll" v-else>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>입점사</th>
+                    <th>주문수</th>
+                    <th>수량</th>
+                    <th>매출</th>
+                    <th>평균 객단가</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(v, idx) in topVendors" :key="v.provider_seq || idx">
+                    <td>{{ idx + 1 }}</td>
+                    <td>
+                      <span class="pill-badge emph">
+                        {{ v.provider_name || ('공급사 ' + v.provider_seq) }}
+                      </span>
+                    </td>
+                    <td>{{ formatNumber(v.order_count) }}</td>
+                    <td>{{ formatNumber(v.total_ea) }}</td>
+                    <td>{{ formatCurrency(v.gross_sales) }}</td>
+                    <td>{{ formatCurrency(v.avg_order_amount || 0) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 하단 2단: 상품 TOP + 재고/마진 -->
+    <section class="bottom-grid">
+      <!-- 상품별 매출 TOP -->
+      <div class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="card-title-pill"></span>
+                <span>상품별 매출 TOP</span>
+              </div>
+              <div class="card-subtitle">
+                판매수량 / 매출 / 공급가 기준 마진을 함께 확인합니다.
+              </div>
+            </div>
+            <span class="mini-tag">
+              Top Goods
+            </span>
+          </div>
+
+          <div class="table-wrap">
+            <div v-if="topGoods.length === 0" class="empty-state">
+              데이터가 없습니다. 기간 또는 필터를 변경해 보세요.
+            </div>
+            <div class="table-scroll" v-else>
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>상품명</th>
+                    <th>입점사</th>
+                    <th>수량</th>
+                    <th>매출</th>
+                    <th>원가</th>
+                    <th>마진율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(g, idx) in topGoods" :key="g.goods_seq || idx">
+                    <td>{{ idx + 1 }}</td>
+                    <td>
+                      <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;">{{ g.goods_name }}</span>
+                        <span style="font-size:10px;color:var(--text-muted);">
+                          {{ g.goods_code }}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="pill-badge">
+                        {{ g.provider_name || ('공급사 ' + g.provider_seq) }}
+                      </span>
+                    </td>
+                    <td>{{ formatNumber(g.total_ea) }}</td>
+                    <td>{{ formatCurrency(g.gross_sales) }}</td>
+                    <td>{{ formatCurrency(g.cost_of_goods || 0) }}</td>
+                    <td>
+                      <span
+                        class="pill-badge"
+                        :class="{ emph: calcMarginRate(g) >= 20, danger: calcMarginRate(g) < 10 }"
+                      >
+                        {{ calcMarginRate(g).toFixed(1) }}%
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 재고 알림 + 마진 계산 -->
+      <div class="card">
+        <div class="card-inner">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <span class="card-title-pill"></span>
+                <span>재고 알림 & 빠른 마진 계산</span>
+              </div>
+              <div class="card-subtitle">
+                안전재고 경고 상품과 간단한 마진 계산을 한 화면에서 확인합니다.
+              </div>
+            </div>
+            <span class="mini-tag">
+              Stock & Margin
+            </span>
+          </div>
+
+          <!-- 재고 알림 테이블 -->
+          <div class="table-wrap" style="max-height: 180px; margin-bottom: 10px;">
+            <div v-if="stockAlerts.length === 0" class="empty-state">
+              현재 재고 알림 대상 상품이 없습니다.
+            </div>
+            <div class="table-scroll" v-else>
+              <table>
+                <thead>
+                  <tr>
+                    <th>상품</th>
+                    <th>입점사</th>
+                    <th>가용재고</th>
+                    <th>안전재고</th>
+                    <th>필요발주</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(s, idx) in stockAlerts.slice(0, 6)" :key="s.goods_seq || idx">
+                    <td>
+                      <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:11px;">{{ s.goods_name }}</span>
+                        <span style="font-size:10px;color:var(--text-muted);">
+                          {{ s.goods_code }}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="pill-badge">
+                        {{ s.provider_name || ('공급사 ' + s.provider_seq) }}
+                      </span>
+                    </td>
+                    <td>{{ formatNumber(s.available_stock ?? 0) }}</td>
+                    <td>{{ formatNumber(s.safe_stock ?? 0) }}</td>
+                    <td>
+                      <span class="pill-badge danger">
+                        {{ formatNumber(s.required_qty ?? 0) }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 마진 계산기 -->
+          <div>
+            <div class="muted-text" style="margin-bottom:4px;">
+              상품 번호와 기본 수수료만 입력해도 예상 마진을 빠르게 확인할 수 있습니다.
+            </div>
+            <form class="margin-form" @submit.prevent="runMarginCalc">
+              <div class="form-row">
+                <label>상품번호</label>
+                <input
+                  type="number"
+                  v-model="marginForm.goodsSeq"
+                  placeholder="예: 1069"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <label>판매가(옵션)</label>
+                <input
+                  type="number"
+                  v-model="marginForm.salePrice"
+                  placeholder="미입력 시 상품 기본가"
+                  min="0"
+                />
+              </div>
+              <div class="form-row">
+                <label>마켓 수수료%</label>
+                <input
+                  type="number"
+                  v-model="marginForm.commissionRate"
+                  min="0"
+                  step="0.1"
+                  placeholder="예: 13"
+                />
+              </div>
+              <div class="form-row">
+                <label>PG 수수료%</label>
+                <input
+                  type="number"
+                  v-model="marginForm.paymentFeeRate"
+                  min="0"
+                  step="0.1"
+                  placeholder="예: 3"
+                />
+              </div>
+              <div class="form-row">
+                <label>배송비</label>
+                <input
+                  type="number"
+                  v-model="marginForm.shippingFee"
+                  min="0"
+                  placeholder="예: 3000"
+                />
+              </div>
+              <div class="form-row">
+                <label>기타비용</label>
+                <input
+                  type="number"
+                  v-model="marginForm.extraCost"
+                  min="0"
+                  placeholder="포장/인건비 등"
+                />
+              </div>
+
+              <button type="submit" class="btn-primary">
+                <span>마진 계산</span>
+              </button>
+            </form>
+
+            <div v-if="marginResult" class="margin-result">
+              <div class="margin-result-row">
+                <span>상품</span>
+                <span style="font-weight:600;">{{ marginResult.goods_name }}</span>
+              </div>
+              <div class="margin-result-row">
+                <span>판매가</span>
+                <span>{{ formatCurrency(marginResult.sale_price) }} 원</span>
+              </div>
+              <div class="margin-result-row">
+                <span>공급가(원가)</span>
+                <span>{{ formatCurrency(marginResult.supply_cost) }} 원</span>
+              </div>
+              <div class="margin-result-row">
+                <span>수수료 / PG / 배송 / 기타</span>
+                <span>
+                  {{ formatCurrency(marginResult.commission) }} /
+                  {{ formatCurrency(marginResult.payment_fee) }} /
+                  {{ formatCurrency(marginResult.shipping_fee) }} /
+                  {{ formatCurrency(marginResult.extra_cost) }}
+                </span>
+              </div>
+              <div class="margin-result-row" style="margin-top:4px;">
+                <span style="font-weight:600;">순이익</span>
+                <span style="font-weight:700;">
+                  {{ formatCurrency(marginResult.profit) }} 원
+                </span>
+              </div>
+              <div class="margin-result-row">
+                <span style="font-weight:600;">마진율</span>
+                <span
+                  style="font-weight:700;"
+                  :style="{ color: marginResult.margin_rate >= 20 ? '#4ade80' : '#f97373' }"
+                >
+                  {{ marginResult.margin_rate.toFixed(2) }} %
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  const { createApp, ref, reactive, onMounted } = Vue;
+
+  let salesChartInstance = null;
+
+  function formatDate(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  createApp({
+    setup() {
+      const globalLoading = ref(false);
+      const errorMessage = ref("");
+
+      const filters = reactive({
+        startDate: "",
+        endDate: "",
+        providerSeq: ""
+      });
+      const quickRange = ref("30d");
+
+      const summary = reactive({
+        totalSales: 0,
+        totalOrders: 0,
+        avgDailySales: 0,
+        avgOrderPerDay: 0,
+        days: 0
+      });
+
+      const dailySales = ref([]);    // [{ sale_date, gross_sales, order_count }, ...]
+      const topVendors = ref([]);
+      const topGoods = ref([]);
+      const lowStockList = ref([]);
+      const stockAlerts = ref([]);
+
+      const marginForm = reactive({
+        goodsSeq: "",
+        salePrice: "",
+        commissionRate: "13",
+        paymentFeeRate: "3",
+        shippingFee: "3000",
+        extraCost: "0"
+      });
+      const marginResult = ref(null);
+
+      const lowStockCount = Vue.computed(() => lowStockList.value.length);
+      const stockAlertCount = Vue.computed(() => stockAlerts.value.length);
+
+      function formatCurrency(n) {
+        if (typeof n !== "number" || Number.isNaN(n)) return "0";
+        return n.toLocaleString("ko-KR");
+      }
+      function formatNumber(n) {
+        if (typeof n !== "number" || Number.isNaN(n)) return "0";
+        return n.toLocaleString("ko-KR");
+      }
+
+      function setQuickRange(range) {
+        quickRange.value = range;
+        const now = new Date();
+        const end = formatDate(now);
+        let start;
+
+        if (range === "7d") {
+          const d = new Date(now);
+          d.setDate(d.getDate() - 6);
+          start = formatDate(d);
+        } else if (range === "30d") {
+          const d = new Date(now);
+          d.setDate(d.getDate() - 29);
+          start = formatDate(d);
+        } else if (range === "ytd") {
+          const d = new Date(now.getFullYear(), 0, 1);
+          start = formatDate(d);
+        } else {
+          start = end;
+        }
+
+        filters.startDate = start;
+        filters.endDate = end;
+        reloadAll();
+      }
+
+      async function reloadAll() {
+        if (!filters.startDate || !filters.endDate) {
+          // 초기에는 quickRange가 날짜를 세팅해줌
+        }
+        globalLoading.value = true;
+        errorMessage.value = "";
+        try {
+          await Promise.all([
+            loadDailySales(),
+            loadTopVendors(),
+            loadTopGoods(),
+            loadLowStock(),
+            loadStockAlerts()
+          ]);
+        } catch (err) {
+          console.error(err);
+          errorMessage.value = "데이터 로딩 중 오류가 발생했습니다.";
+        } finally {
+          globalLoading.value = false;
+        }
+      }
+
+      async function loadDailySales() {
+        const params = new URLSearchParams();
+        if (filters.startDate) params.append("startDate", filters.startDate);
+        if (filters.endDate) params.append("endDate", filters.endDate);
+        if (filters.providerSeq) params.append("providerSeq", filters.providerSeq);
+
+        const res = await fetch(`/api/report/sales/daily?${params.toString()}`);
+        if (!res.ok) throw new Error("daily sales load failed");
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        dailySales.value = items;
+
+        // 요약 데이터 계산
+        let totalSales = 0;
+        let totalOrders = 0;
+        for (const row of items) {
+          totalSales += Number(row.gross_sales || 0);
+          totalOrders += Number(row.order_count || 0);
+        }
+        summary.totalSales = totalSales;
+        summary.totalOrders = totalOrders;
+        summary.days = items.length || 0;
+        summary.avgDailySales = summary.days ? totalSales / summary.days : 0;
+        summary.avgOrderPerDay = summary.days ? totalOrders / summary.days : 0;
+
+        renderSalesChart();
+      }
+
+      async function loadTopVendors() {
+        const params = new URLSearchParams();
+        if (filters.startDate) params.append("startDate", filters.startDate);
+        if (filters.endDate) params.append("endDate", filters.endDate);
+        if (filters.providerSeq) params.append("providerSeq", filters.providerSeq);
+
+        const res = await fetch(`/api/report/sales/vendors?${params.toString()}`);
+        if (!res.ok) throw new Error("vendors load failed");
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        topVendors.value = items.map((v) => {
+          const orderCount = Number(v.order_count || 0);
+          const grossSales = Number(v.gross_sales || 0);
+          return {
+            ...v,
+            order_count: orderCount,
+            gross_sales: grossSales,
+            total_ea: Number(v.total_ea || 0),
+            avg_order_amount: orderCount ? grossSales / orderCount : 0
+          };
+        });
+      }
+
+      async function loadTopGoods() {
+        const params = new URLSearchParams();
+        if (filters.startDate) params.append("startDate", filters.startDate);
+        if (filters.endDate) params.append("endDate", filters.endDate);
+        if (filters.providerSeq) params.append("providerSeq", filters.providerSeq);
+        params.append("pageSize", "50");
+
+        const res = await fetch(`/api/report/sales/goods?${params.toString()}`);
+        if (!res.ok) throw new Error("goods load failed");
+
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        topGoods.value = items;
+      }
+
+      async function loadLowStock() {
+        const params = new URLSearchParams();
+        params.append("pageSize", "50");
+        // threshold 없으면 safe_stock 기준으로 저재고 판단
+        const res = await fetch(`/api/stock/low?${params.toString()}`);
+        if (!res.ok) throw new Error("stock low load failed");
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        lowStockList.value = items;
+      }
+
+      async function loadStockAlerts() {
+        const res = await fetch(`/api/stock/alerts`);
+        if (!res.ok) throw new Error("stock alerts load failed");
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.items || []);
+        stockAlerts.value = items;
+      }
+
+      function calcMarginRate(g) {
+        const sales = Number(g.gross_sales || 0);
+        const cost = Number(g.cost_of_goods || 0);
+        if (!sales) return 0;
+        return ((sales - cost) / sales) * 100;
+      }
+
+      function renderSalesChart() {
+        const ctx = document.getElementById("salesChart");
+        if (!ctx) return;
+        const items = dailySales.value || [];
+        const labels = items.map((r) => r.sale_date?.slice(5, 10) || "");
+        const salesData = items.map((r) => Number(r.gross_sales || 0));
+        const orderData = items.map((r) => Number(r.order_count || 0));
+
+        if (salesChartInstance) {
+          salesChartInstance.destroy();
+        }
+
+        salesChartInstance = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "매출",
+                data: salesData,
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 0,
+              },
+              {
+                label: "주문수",
+                data: orderData,
+                yAxisID: "y1",
+                tension: 0.35,
+                borderWidth: 1.5,
+                borderDash: [4, 4],
+                pointRadius: 0,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+              mode: "index",
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                labels: {
+                  color: "#9ca3af",
+                  font: { size: 11 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label(context) {
+                    const label = context.dataset.label || "";
+                    const value = context.parsed.y;
+                    if (label.includes("매출")) {
+                      return `${label}: ${value.toLocaleString("ko-KR")} 원`;
+                    }
+                    return `${label}: ${value.toLocaleString("ko-KR")} 건`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: "#6b7280", font: { size: 10 } },
+                grid: { color: "rgba(31, 41, 55, 0.8)" }
+              },
+              y: {
+                ticks: { color: "#6b7280", font: { size: 10 } },
+                grid: { color: "rgba(31, 41, 55, 0.9)" }
+              },
+              y1: {
+                position: "right",
+                ticks: { color: "#6b7280", font: { size: 10 } },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+
+      async function runMarginCalc() {
+        if (!marginForm.goodsSeq) {
+          alert("상품번호를 입력하세요.");
+          return;
+        }
+        const params = new URLSearchParams();
+        if (marginForm.salePrice) params.append("salePrice", marginForm.salePrice);
+        if (marginForm.commissionRate) params.append("commissionRate", marginForm.commissionRate);
+        if (marginForm.paymentFeeRate) params.append("paymentFeeRate", marginForm.paymentFeeRate);
+        if (marginForm.shippingFee) params.append("shippingFee", marginForm.shippingFee);
+        if (marginForm.extraCost) params.append("extraCost", marginForm.extraCost);
+
+        try {
+          globalLoading.value = true;
+          const res = await fetch(`/api/margin/goods/${marginForm.goodsSeq}?${params.toString()}`);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || "margin calc failed");
+          }
+          const data = await res.json();
+          marginResult.value = data;
+        } catch (err) {
+          console.error(err);
+          alert("마진 계산 중 오류가 발생했습니다.");
+        } finally {
+          globalLoading.value = false;
+        }
+      }
+
+      onMounted(() => {
+        // 최초 로딩: 최근 30일
+        setQuickRange("30d");
+      });
+
+      return {
+        globalLoading,
+        errorMessage,
+        filters,
+        quickRange,
+        summary,
+        dailySales,
+        topVendors,
+        topGoods,
+        lowStockList,
+        stockAlerts,
+        marginForm,
+        marginResult,
+        lowStockCount,
+        stockAlertCount,
+        setQuickRange,
+        reloadAll,
+        formatCurrency,
+        formatNumber,
+        calcMarginRate,
+        runMarginCalc
+      };
+    }
+  }).mount("#app");
+</script>
+</body>
+</html>
